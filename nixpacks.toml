@@ -1,8 +1,13 @@
 [phases.setup]
-nixPkgs = ["python3", "ffmpeg", "deno"]
+nixPkgs = ["python3", "ffmpeg", "deno", "nodejs"]
 
 [phases.build]
-cmds = ["python -m venv .venv", ".venv/bin/pip install -r requirements.txt"]
+cmds = [
+  "python -m venv .venv",
+  ".venv/bin/pip install -r requirements.txt",
+  "git clone --depth 1 --branch 2.0.0 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git .bgutil",
+  "cd .bgutil/server && npm ci && npx tsc"
+]
 
 [start]
 cmd = ".venv/bin/python bot.py"
