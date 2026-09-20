@@ -107,14 +107,9 @@ YTDLP_BASE_OPTS = {
         "Accept-Language": "en-US,en;q=0.9",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     },
-    # Let current yt-dlp choose supported YouTube clients.
-    # Hard-coding only android/web and skipping HLS/DASH became fragile as
-    # YouTube changed its client and token requirements.
     "retries":          5,
     "fragment_retries": 5,
     "ignoreerrors":     False,
-    # yt-dlp current releases can use the installed JS runtime + EJS package
-    # for YouTube challenge solving. Deno is provided by nixpacks.toml.
 }
 
 YOUTUBE_URL_REGEX = re.compile(
@@ -405,10 +400,24 @@ async def set_status(message, chat_id: int, text: str, keyboard=None):
 # =========================================================================== #
 
 def _yt_dlp_opts(extra: dict | None = None) -> dict:
+    """Build yt-dlp options without forcing an outdated YouTube client list."""
     opts = {**YTDLP_BASE_OPTS}
+
+    # Cookies are optional. Never bundle session cookies in the repository.
     cookie_file = os.environ.get("YOUTUBE_COOKIE_FILE")
     if cookie_file and os.path.isfile(cookie_file):
         opts["cookiefile"] = cookie_file
+
+    # Only override YouTube clients when explicitly configured. Otherwise let
+    # the installed yt-dlp version choose the currently supported clients.
+    player_client = os.environ.get("YOUTUBE_PLAYER_CLIENT")
+    if player_client:
+        opts["extractor_args"] = {
+            "youtube": {
+                "player_client": [c.strip() for c in player_client.split(",") if c.strip()]
+            }
+        }
+
     if extra:
         opts.update(extra)
     return opts
