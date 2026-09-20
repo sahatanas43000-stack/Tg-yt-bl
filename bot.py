@@ -408,15 +408,21 @@ def _yt_dlp_opts(extra: dict | None = None) -> dict:
     if cookie_file and os.path.isfile(cookie_file):
         opts["cookiefile"] = cookie_file
 
-    # Only override YouTube clients when explicitly configured. Otherwise let
-    # the installed yt-dlp version choose the currently supported clients.
-    player_client = os.environ.get("YOUTUBE_PLAYER_CLIENT")
-    if player_client:
-        opts["extractor_args"] = {
-            "youtube": {
-                "player_client": [c.strip() for c in player_client.split(",") if c.strip()]
-            }
+    # YouTube currently requires PO Tokens for some GVS requests. Use the
+    # mweb client and the local BgUtils provider by default. The provider is
+    # started by Render before this bot process.
+    player_client = os.environ.get("YOUTUBE_PLAYER_CLIENT", "mweb")
+    clients = [c.strip() for c in player_client.split(",") if c.strip()]
+    opts["extractor_args"] = {
+        "youtube": {
+            "player_client": clients,
+            "youtubepot-bgutilhttp": {
+                "base_url": os.environ.get(
+                    "BGUTIL_POT_BASE_URL", "http://127.0.0.1:4416"
+                ),
+            },
         }
+    }
 
     if extra:
         opts.update(extra)
